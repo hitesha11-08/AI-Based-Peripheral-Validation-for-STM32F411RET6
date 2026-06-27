@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32F411RET6 AI Dashboard</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    background:#080d1a;
+    color:#e2e8f0;
+    font-family:'Segoe UI', system-ui, sans-serif;
+    font-size:13px;
+    min-height:100vh;
+}
+
+.header {
+    background:#0b1120;
+    border-bottom:2px solid #1e3a5f;
+    padding:14px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.header-left { display:flex; align-items:center; gap:18px; }
+
+.chip-box {
+    width:60px; height:60px;
+    border:2px solid #2563eb;
+    border-radius:8px;
+    background:#0f172a;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:3px;
+    position:relative;
+}
+
+.chip-box::before {
+    content:'';
+    position:absolute;
+    inset:5px;
+    border:1px solid #1d4ed8;
+    border-radius:3px;
+}
+
+.chip-dots {
+    display:flex; gap:2px;
+}
+
+.chip-dot {
+    width:4px; height:4px;
+    background:#1d4ed8;
+    border-radius:1px;
+}
+
+.chip-text {
+    font-size:10px; font-weight:800;
+    color:#60a5fa; letter-spacing:1px;
+    z-index:1;
+}
+
+.title h1 {
+    font-size:24px; font-weight:700;
+    color:#f1f5f9; letter-spacing:0.3px;
+}
+
+.title h1 span { color:#3b82f6; }
+
+.header-right { display:flex; gap:14px; }
+
+.meta-pill {
+    background:#0f172a;
+    border:1px solid #1e3a5f;
+    border-radius:20px;
+    padding:6px 16px;
+    font-size:12px; color:#94a3b8;
+    display:flex; align-items:center; gap:8px;
+}
+
+.meta-pill .dot {
+    width:7px; height:7px;
+    border-radius:50%;
+}
+
+.main {
+    display:grid;
+    grid-template-columns:1fr 390px;
+    gap:14px;
+    padding:14px;
+}
+
+.left { display:flex; flex-direction:column; gap:14px; }
+.right { display:flex; flex-direction:column; gap:14px; }
+
+.card {
+    background:#0b1120;
+    border:1px solid #1a2d48;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.card-hdr {
+    display:flex; align-items:center; gap:8px;
+    padding:9px 14px;
+    border-bottom:1px solid #1a2d48;
+    font-size:11px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    color:#64748b;
+}
+
+.card-hdr-icon {
+    width:22px; height:22px; border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px;
+}
+
+.hdr-blue { background:#1e3a5f; color:#60a5fa; }
+.hdr-red { background:#2a0f0f; color:#f87171; }
+
+.val-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:12px;
+}
+
+.vblock {
+    background:#0f1923;
+    border:1px solid #1a2d48;
+    border-radius:8px;
+    padding:10px 12px;
+}
+
+.vblock h4 {
+    font-size:11px; font-weight:700;
+    letter-spacing:0.8px; text-transform:uppercase;
+    margin-bottom:8px;
+    display:flex; align-items:center; gap:6px;
+}
+
+.h4-blue { color:#60a5fa; }
+.h4-green { color:#4ade80; }
+.h4-purple { color:#a78bfa; }
+.h4-cyan { color:#22d3ee; }
+.h4-orange { color:#fb923c; }
+.h4-yellow { color:#facc15; }
+.h4-red { color:#f87171; }
+.h4-teal { color:#2dd4bf; }
+
+.val-row {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:3px 0;
+    border-bottom:1px solid #131e2e;
+    font-size:12px;
+}
+
+.val-row:last-child { border-bottom:none; }
+
+.lbl { color:#64748b; }
+.pass { color:#4ade80; font-weight:700; }
+.fail { color:#ef4444; font-weight:700; }
+.val-num { color:#cbd5e1; }
+.val-hex { color:#a78bfa; font-family:Consolas,monospace; font-size:11px; }
+
+.nvic-pills {
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding:10px 12px;
+}
+
+.nvic-pill {
+    background:#0f1923;
+    border:1px solid #1a2d48;
+    border-radius:6px;
+    padding:5px 12px;
+    font-size:12px; color:#94a3b8;
+}
+
+.health-card {
+    background:#0b1120;
+    border:1px solid #1a2d48;
+    border-radius:10px;
+    padding:16px;
+}
+
+.health-hdr {
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    color:#64748b; margin-bottom:14px;
+}
+
+.score-wrap { display:flex; align-items:center; gap:20px; }
+
+.donut-wrap {
+    position:relative; width:110px; height:110px; flex-shrink:0;
+}
+
+.donut-wrap svg {
+    width:100%; height:100%;
+    transform:rotate(-90deg);
+}
+
+.donut-center {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+}
+
+.donut-pct {
+    font-size:26px; font-weight:800;
+    line-height:1;
+    color:#4ade80;
+}
+
+.donut-lbl {
+    font-size:10px; font-weight:700;
+    letter-spacing:1px; margin-top:2px;
+    color:#4ade80;
+}
+
+.legend { flex:1; }
+
+.legend-row {
+    display:flex; align-items:center;
+    justify-content:space-between;
+    padding:7px 0;
+    border-bottom:1px solid #111827;
+    font-size:13px;
+}
+
+.legend-row:last-child { border-bottom:none; }
+
+.leg-left { display:flex; align-items:center; gap:10px; }
+
+.leg-dot {
+    width:20px; height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px;
+}
+
+.leg-green { background:#14291f; color:#4ade80; }
+.leg-red { background:#2a0f0f; color:#ef4444; }
+.leg-gray { background:#1a2535; color:#64748b; }
+
+.leg-name { color:#94a3b8; font-weight:500; }
+.leg-count { font-size:17px; font-weight:800; }
+.lc-green { color:#4ade80; }
+.lc-red { color:#ef4444; }
+.lc-gray { color:#64748b; }
+
+.total-bar {
+    display:flex; justify-content:space-between;
+    padding:8px 0 0;
+    margin-top:6px;
+    border-top:1px solid #1a2d48;
+    font-size:11px;
+    color:#64748b;
+    text-transform:uppercase; letter-spacing:0.5px;
+}
+
+.peri-table { width:100%; border-collapse:collapse; }
+
+.peri-table th {
+    padding:8px 14px;
+    text-align:left;
+    font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.5px;
+    color:#64748b;
+    border-bottom:1px solid #1a2d48;
+}
+
+.peri-table td {
+    padding:7px 14px;
+    border-bottom:1px solid #0f1923;
+    font-size:13px;
+}
+
+.peri-table tr:last-child td { border-bottom:none; }
+
+.peri-name { color:#94a3b8; }
+
+.badge-healthy { color:#4ade80; font-weight:700; }
+.badge-fault { color:#ef4444; font-weight:700; }
+.badge-unused { color:#64748b; font-weight:600; }
+
+.fault-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:12px;
+}
+
+.fault-card {
+    background:#150d0d;
+    border:1px solid #7f1d1d;
+    border-radius:8px;
+    padding:12px;
+}
+
+.fault-title {
+    display:flex; align-items:center; gap:6px;
+    font-size:13px; font-weight:700;
+    color:#fca5a5; margin-bottom:10px;
+}
+
+.warn-icon { color:#f87171; font-size:15px; }
+
+.fault-field { margin-bottom:7px; }
+
+.f-label {
+    display:block;
+    font-size:10px; text-transform:uppercase;
+    letter-spacing:0.5px; color:#64748b;
+    margin-bottom:2px;
+}
+
+.f-val { font-size:12px; color:#cbd5e1; }
+
+.fault-ok {
+    grid-column:1/-1;
+    background:#0b1f12;
+    border:1px solid #166534;
+    border-radius:8px;
+    padding:16px;
+    display:flex; align-items:center; gap:14px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="chip-box">
+      <div class="chip-dots">
+        <div class="chip-dot"></div><div class="chip-dot"></div>
+        <div class="chip-dot"></div><div class="chip-dot"></div>
+      </div>
+      <div class="chip-text">STM32</div>
+      <div class="chip-dots">
+        <div class="chip-dot"></div><div class="chip-dot"></div>
+        <div class="chip-dot"></div><div class="chip-dot"></div>
+      </div>
+    </div>
+    <div class="title">
+      <h1>STM32F411RET6 <span>AI</span> PERIPHERAL HEALTH DASHBOARD</h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="meta-pill">
+      <div class="dot" style="background:#3b82f6;"></div>
+      &#128197; Generated : 2026-06-27 17:15:15
+    </div>
+    <div class="meta-pill">
+      <div class="dot" style="background:#4ade80;"></div>
+      &#9881; MCU : STM32F411RET6
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-hdr-icon hdr-blue">&#128203;</div>
+        VALIDATION REPORT
+      </div>
+
+      <div class="val-grid">
+        <div class="vblock">
+          <h4 class="h4-blue">&#128336; RCC STATUS</h4>
+          <div class="val-row"><span class="lbl">GPIOA</span><span class="pass">PASS</span></div><div class="val-row"><span class="lbl">GPIOB</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">GPIOC</span><span class="fail">FAIL</span></div><div class="val-row"><span class="lbl">GPIOD</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">GPIOE</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">GPIOH</span><span class="val-num">NOT_USED</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-purple">&#9889; GPIO STATUS</h4>
+          <div class="val-row"><span class="lbl">GPIOA_MODER</span><span class="val-hex">0xa8000020</span></div><div class="val-row"><span class="lbl">GPIOB_MODER</span><span class="val-hex">0x280</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-green">&#128225; USART STATUS</h4>
+          
+        <div class="val-row">
+            <span class="lbl" style="font-weight:700;color:#60a5fa;">USART1</span>
+            <span class="val-num">NOT USED</span>
+        </div>
+    
+            <div class="val-row">
+                <span class="lbl">TX</span>
+                <span class="val-num">-</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">RX</span>
+                <span class="val-num">-</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">Overrun</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">ParityError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">FramingError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">NoiseError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+        <div class="val-row">
+            <span class="lbl" style="font-weight:700;color:#60a5fa;">USART2</span>
+            <span class="pass">HEALTHY</span>
+        </div>
+    
+            <div class="val-row">
+                <span class="lbl">TX</span>
+                <span class="pass">PASS</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">RX</span>
+                <span class="fail">FAIL</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">Overrun</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">ParityError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">FramingError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">NoiseError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+        <div class="val-row">
+            <span class="lbl" style="font-weight:700;color:#60a5fa;">USART6</span>
+            <span class="val-num">NOT USED</span>
+        </div>
+    
+            <div class="val-row">
+                <span class="lbl">TX</span>
+                <span class="val-num">-</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">RX</span>
+                <span class="val-num">-</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">Overrun</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">ParityError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">FramingError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+            <div class="val-row">
+                <span class="lbl">NoiseError</span>
+                <span class="val-num">0</span>
+            </div>
+        
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-cyan">&#128306; SPI STATUS</h4>
+          <div class="val-row"><span class="lbl">Enabled</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">MasterMode</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">TXE</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">RXNE</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">Overrun</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">Busy</span><span class="val-num">-</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-teal">&#128279; I2C STATUS</h4>
+          <div class="val-row"><span class="lbl">Enabled</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">BusBusy</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">BusError</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">ArbitrationLost</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">AckFailure</span><span class="val-num">-</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-red">&#12316; ADC STATUS</h4>
+          <div class="val-row"><span class="lbl">Status</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">ADC Enabled</span><span class="val-num">NO</span></div><div class="val-row"><span class="lbl">EOC Flag</span><span class="val-num">0</span></div><div class="val-row"><span class="lbl">ADC Value</span><span class="val-num">0</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-orange">&#12316; PWM STATUS</h4>
+          <div class="val-row"><span class="lbl">Timer Running</span><span class="val-num">NOT_USED</span></div><div class="val-row"><span class="lbl">Counter</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">Prescaler</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">ARR</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">CCR1</span><span class="val-num">-</span></div><div class="val-row"><span class="lbl">DutyCycle</span><span class="val-num">-</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-blue">&#128336; TIMER STATUS</h4>
+          <div class="val-row"><span class="lbl">TIM1_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">TIM1_DUTY</span><span class="val-num">50</span></div><div class="val-row"><span class="lbl">TIM2_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">TIM2_DUTY</span><span class="val-num">50</span></div><div class="val-row"><span class="lbl">TIM3_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">TIM3_DUTY</span><span class="val-num">50</span></div><div class="val-row"><span class="lbl">TIM4_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">TIM4_DUTY</span><span class="val-num">50</span></div><div class="val-row"><span class="lbl">TIM5_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">TIM5_DUTY</span><span class="val-num">50</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-cyan">&#128260; DMA STATUS</h4>
+          <div class="val-row"><span class="lbl">DMA1_Status</span><span class="val-num">PASS</span></div><div class="val-row"><span class="lbl">DMA1_EnabledStreams</span><span class="val-num">[]</span></div><div class="val-row"><span class="lbl">DMA1_FaultStreams</span><span class="val-num">[]</span></div><div class="val-row"><span class="lbl">DMA2_Status</span><span class="val-num">PASS</span></div><div class="val-row"><span class="lbl">DMA2_EnabledStreams</span><span class="val-num">[]</span></div><div class="val-row"><span class="lbl">DMA2_FaultStreams</span><span class="val-num">[]</span></div><div class="val-row"><span class="lbl">Status</span><span class="val-num">PASS</span></div>
+        </div>
+
+        <div class="vblock">
+          <h4 class="h4-yellow">&#128336; SYSTICK STATUS</h4>
+          <div class="val-row"><span class="lbl">SYSTICK_EN</span><span class="val-num">1</span></div><div class="val-row"><span class="lbl">SYSTICK_FREQ</span><span class="val-num">1000</span></div><div class="val-row"><span class="lbl">SYSTICK_STATUS</span><span class="pass">PASS</span></div>
+        </div>
+      </div>
+
+      <div class="vblock" style="margin:0 12px 12px;">
+        <h4 class="h4-yellow">&#128276; NVIC STATUS</h4>
+        <div class="nvic-pills">
+          <div class="nvic-pill">ADC_IRQ : <span style="color:#4ade80;font-weight:700;">{'Status': 'PASS', 'Enabled': 0, 'Pending': 0, 'Active': 0}</span></div><div class="nvic-pill">TIM2_IRQ : <span style="color:#4ade80;font-weight:700;">{'Status': 'PASS', 'Enabled': 0, 'Pending': 0, 'Active': 0}</span></div><div class="nvic-pill">I2C1_IRQ : <span style="color:#4ade80;font-weight:700;">{'Status': 'PASS', 'Enabled': 0, 'Pending': 0, 'Active': 0}</span></div><div class="nvic-pill">SPI1_IRQ : <span style="color:#4ade80;font-weight:700;">{'Status': 'PASS', 'Enabled': 0, 'Pending': 0, 'Active': 0}</span></div><div class="nvic-pill">USART2_IRQ : <span style="color:#4ade80;font-weight:700;">{'Status': 'PASS', 'Enabled': 0, 'Pending': 0, 'Active': 0}</span></div><div class="nvic-pill">Status : <span style="color:#4ade80;font-weight:700;">PASS</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="health-card">
+      <div class="health-hdr">
+        &#9829; HEALTH SCORE
+      </div>
+      <div class="score-wrap">
+        <div class="donut-wrap">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="#1a2535" stroke-width="10"/>
+            <circle cx="60" cy="60" r="54" fill="none"
+              stroke="#4ade80" stroke-width="10"
+              stroke-linecap="round"
+              stroke-dasharray="339.3 0.0"/>
+          </svg>
+          <div class="donut-center">
+            <div class="donut-pct">100%</div>
+            <div class="donut-lbl">EXCELLENT</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-row">
+            <div class="leg-left">
+              <div class="leg-dot leg-green">&#10003;</div>
+              <span class="leg-name">HEALTHY</span>
+            </div>
+            <span class="leg-count lc-green">5</span>
+          </div>
+          <div class="legend-row">
+            <div class="leg-left">
+              <div class="leg-dot leg-red">&#10007;</div>
+              <span class="leg-name">FAULT</span>
+            </div>
+            <span class="leg-count lc-red">0</span>
+          </div>
+          <div class="legend-row">
+            <div class="leg-left">
+              <div class="leg-dot leg-gray">&#8211;</div>
+              <span class="leg-name">NOT USED</span>
+            </div>
+            <span class="leg-count lc-gray">5</span>
+          </div>
+          <div class="total-bar">
+            <span>TOTAL PERIPHERALS</span>
+            <span style="color:#e2e8f0;font-weight:700;">10</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-hdr-icon hdr-blue">&#9776;</div>
+        PERIPHERAL STATUS
+      </div>
+      <table class="peri-table">
+        <thead>
+          <tr>
+            <th>Peripheral</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        <tr>
+            <td><span class="peri-name">&#x1F4E1; UART</span></td>
+            <td><span class="badge-healthy">&#x2705; HEALTHY</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x1F517; I2C</span></td>
+            <td><span class="badge-unused">&#x26AA; NOT USED</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x1F532; SPI</span></td>
+            <td><span class="badge-unused">&#x26AA; NOT USED</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x223F; ADC</span></td>
+            <td><span class="badge-unused">&#x26AA; NOT USED</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x223F; PWM</span></td>
+            <td><span class="badge-unused">&#x26AA; NOT USED</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x23F0; TIMER</span></td>
+            <td><span class="badge-healthy">&#x2705; HEALTHY</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x1F514; NVIC</span></td>
+            <td><span class="badge-healthy">&#x2705; HEALTHY</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x1F504; DMA</span></td>
+            <td><span class="badge-unused">&#x26AA; NOT USED</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x26A1; GPIO</span></td>
+            <td><span class="badge-healthy">&#x2705; HEALTHY</span></td>
+        </tr>
+        <tr>
+            <td><span class="peri-name">&#x23F0; RCC</span></td>
+            <td><span class="badge-healthy">&#x2705; HEALTHY</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-hdr-icon hdr-red">&#9888;</div>
+        FAULT ANALYSIS
+      </div>
+      <div class="fault-grid">
+        
+        <div class="fault-ok">
+            <span style="font-size:20px;">&#x2705;</span>
+            <div>
+                <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">No Active Faults Detected</div>
+                <div style="color:#64748b;font-size:12px;">All active peripherals operating normally.</div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
